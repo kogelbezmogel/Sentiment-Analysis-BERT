@@ -19,7 +19,38 @@ class WikiTextParser:
 
     def __init__(self, data: List[AnyStr]):
         self.data = self.__parse_data_to_dataframe(data)
-        # print(self.data)
+
+
+    def to_lowercase(self):
+        for index, row in self.data.iterrows():
+            row['text'] = row['text'].lower()
+
+
+    def numbers_to_tokens(self, token = '[NUM]'):
+        for index, row in self.data.iterrows():
+            row['text'] = re.sub(self.number_regex, token, row['text'])
+
+
+    def urls_to_tokens(self, token = '[URL]'):
+        for index, row in self.data.iterrows():
+            row['text'] = re.sub(self.url_regex, token, row['text'])
+
+
+    def extend_abrevations(self, abrevation_dict = None):
+        pass
+    
+
+    def remove_html_tags(self):
+        for index, row in self.data.iterrows():
+            row['text'] = re.sub(self.html_tag_regex, '', row['text'])
+
+
+    def remove_empty_lines(self):
+        pass
+
+
+    def remove_stopwords(stopwords_set = None):
+        pass
 
 
     def __parse_data_to_dataframe(self, data: List[AnyStr]):
@@ -46,7 +77,6 @@ class WikiTextParser:
 
         index = pd.MultiIndex.from_tuples(index_tuples, names=(['article', 'part', 'line']))
         return pd.DataFrame(text_lines, columns=['text'], index=index)
-
 
 
 def text_analysis(corpus):
@@ -116,8 +146,33 @@ def text_analysis(corpus):
 
 
 
+def print_number_examples(data: pd.DataFrame):
+    for index, row in data.iterrows():
+        for match in re.finditer(WikiTextParser.number_regex, row['text']):
+                print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
+
+
+def print_html_examples(data: pd.DataFrame):
+    for index, row in data.iterrows():
+        for match in re.finditer(WikiTextParser.html_tag_regex, row['text']):
+                print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
+
+
+def print_url_examples(data: pd.DataFrame):
+    for index, row in data.iterrows():
+        for match in re.finditer(WikiTextParser.url_regex, row['text']):
+                print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
+
+
 if __name__ == '__main__':
     data: List[AnyStr] = pickle.load(open(WIKI_DATASET_TRAIN_RAW_PATH, "rb"))
 
     data_parser = WikiTextParser(data)
-    text_analysis(data_parser.data)
+    data_parser.to_lowercase()
+    # data_parser.numbers_to_tokens()
+    # data_parser.urls_to_tokens()
+    
+    # print_html_examples(data_parser.data)
+    print_url_examples(data_parser.data)
+    # text_analysis(data_parser.data)
+    
