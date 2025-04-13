@@ -4,6 +4,8 @@ import pandas as pd
 import pickle 
 import re
 import emoji
+import random
+import math
 
 WIKI_DATASET_TRAIN_RAW_PATH = "dataset//wikitext_train_raw.pickle"
 WIKI_DATASET_TEST_RAW_PATH = "dataset//wikitext_test_raw.pickle"
@@ -50,6 +52,10 @@ class WikiTextParser:
 
 
     def remove_stopwords(stopwords_set = None):
+        pass
+
+
+    def save_parsed_data(self):
         pass
 
 
@@ -146,22 +152,47 @@ def text_analysis(corpus):
 
 
 
-def print_number_examples(data: pd.DataFrame):
-    for index, row in data.iterrows():
-        for match in re.finditer(WikiTextParser.number_regex, row['text']):
-                print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
+def find_pattern_examples(file_name: AnyStr, data: pd.DataFrame, pattern, num: int = None, rand = True, window_size = 20):
+    sample_num = len(data)
+    sample_inds = [i for i in range(0, sample_num)]
+    samples_to_print = num if num else sample_num
+    samples_left = samples_to_print
+
+    if rand:
+        random.shuffle(sample_inds)
+
+    file = open(file_name, "w")
+    for ind in sample_inds:
+        row = data.iloc[ind]
+
+        if re.search(pattern, row['text']):
+            samples_to_print -= 1            
+
+            file.write(f"{samples_left - samples_to_print:3d}) row: {ind:8d} |  ")
+            for match in re.finditer(pattern, row['text']):
+                
+                slice_size = match.end() - match.start()
+                left_size = math.floor((window_size - slice_size) / 2) 
+                right_size = math.ceil((window_size - slice_size) / 2)
+
+                left_chunk = row['text'][match.start()-left_size : match.start()] 
+                middle_chunk = "[" + row['text'][match.start() : match.end()].replace("\n", "") + "]" 
+                right_chunk = row['text'][match.end() : match.end()+right_size].replace("\n", "")
+
+                left_chunk = (left_size - len(left_chunk)) * " " + left_chunk
+                right_chunk = right_chunk + (right_size - len(right_chunk)) * " " + "  |  "
+
+                file.write( left_chunk + middle_chunk + right_chunk)
+            file.write("\n")
+
+        if samples_to_print == 0:
+            break
+    file.close()
 
 
-def print_html_examples(data: pd.DataFrame):
-    for index, row in data.iterrows():
-        for match in re.finditer(WikiTextParser.html_tag_regex, row['text']):
-                print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
-
-
-def print_url_examples(data: pd.DataFrame):
-    for index, row in data.iterrows():
-        for match in re.finditer(WikiTextParser.url_regex, row['text']):
-                print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
+    # for index, row in data.iterrows():
+    #     for match in re.finditer(pattern, row['text']):
+    #         print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
 
 
 if __name__ == '__main__':
@@ -173,6 +204,9 @@ if __name__ == '__main__':
     # data_parser.urls_to_tokens()
     
     # print_html_examples(data_parser.data)
-    print_url_examples(data_parser.data)
+    # find_pattern_examples("extracted_patterns//number_samples.txt", data_parser.data, WikiTextParser.number_regex, 300)
+    find_pattern_examples("extracted_patterns//html_samples.txt", data_parser.data, WikiTextParser.html_tag_regex, 300, rand=True, window_size=50)
+    find_pattern_examples("extracted_patterns//url_samples.txt", data_parser.data, WikiTextParser.url_regex, 300, rand=True, window_size=80)
+
     # text_analysis(data_parser.data)
     
