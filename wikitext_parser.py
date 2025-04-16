@@ -15,14 +15,8 @@ class WikiTextParser:
     header_regex = re.compile(r" = .+ = .*")
     article_regex = re.compile(r"( = ){1}[^=;]+( = ){1}")
     html_tag_regex = re.compile(r'<.*?>')
-    url_regex = re.compile(r'https?://\S+|www\.\S+')
-    # specific examples:
-    # 2 @,@ 585 @.@ 6
-    # 60 @,@ 000 @,@ 000
-    # -9,999,999
-    # -105.8825
-    # -549,755,813,888
-    number_regex = re.compile(r'(-){1}\d+( @[\.,]@ )?\d*') 
+    url_regex = re.compile(r'(http : / / )?www\.\S+( / \S+)*( \? \S+ = \S+( \& \S+ = \S+)*)?')
+    number_regex = re.compile(r'(\d+( @[\.,]@ \d+)+)|(\d+([\.,]\d+)*)')
 
 
     def __init__(self, data: List[AnyStr] = []):
@@ -216,12 +210,12 @@ if __name__ == '__main__':
     
     data_parser = WikiTextParser.from_parsed_data("dataset//wikitext_train_prased.pickle")
 
-    print(data_parser.data.iloc[144054]['text'])
+    print(data_parser.data.iloc[214829]['text'])
     # data_parser.numbers_to_tokens()
     # data_parser.urls_to_tokens()
     
     # print_html_examples(data_parser.data)
-    # find_pattern_examples("extracted_patterns//number_samples.txt", data_parser.data, WikiTextParser.number_regex, 300, rand=True, window_size=30)
+    find_pattern_examples("extracted_patterns//number_samples.txt", data_parser.data, WikiTextParser.number_regex, 300, rand=True, window_size=30)
     # find_pattern_examples("extracted_patterns//html_samples.txt", data_parser.data, WikiTextParser.html_tag_regex, 300, rand=True, window_size=50)
     # find_pattern_examples("extracted_patterns//url_samples.txt", data_parser.data, WikiTextParser.url_regex, 300, rand=True, window_size=80)
 
