@@ -16,12 +16,24 @@ class WikiTextParser:
     article_regex = re.compile(r"( = ){1}[^=;]+( = ){1}")
     html_tag_regex = re.compile(r'<.*?>')
     url_regex = re.compile(r'https?://\S+|www\.\S+')
-    number_regex = re.compile(r'-?\d+[\.,]?\d*')
+    # specific examples:
+    # 2 @,@ 585 @.@ 6
+    # 60 @,@ 000 @,@ 000
+    # -9,999,999
+    # -105.8825
+    # -549,755,813,888
+    number_regex = re.compile(r'(-){1}\d+( @[\.,]@ )?\d*') 
 
 
-    def __init__(self, data: List[AnyStr]):
-        self.data = self.__parse_data_to_dataframe(data)
+    def __init__(self, data: List[AnyStr] = []):
+        if data:
+            self.data = self.__parse_data_to_dataframe(data)
 
+    @classmethod
+    def from_parsed_data(cls, path):
+        parser =  WikiTextParser()
+        parser.data = pickle.load( open(path, 'rb') )
+        return parser
 
     def to_lowercase(self):
         for index, row in self.data.iterrows():
@@ -55,8 +67,8 @@ class WikiTextParser:
         pass
 
 
-    def save_parsed_data(self):
-        pass
+    def save_parsed_data(self, path: AnyStr):
+        pickle.dump(self.data, open(path, 'wb'))
 
 
     def __parse_data_to_dataframe(self, data: List[AnyStr]):
@@ -198,15 +210,20 @@ def find_pattern_examples(file_name: AnyStr, data: pd.DataFrame, pattern, num: i
 if __name__ == '__main__':
     data: List[AnyStr] = pickle.load(open(WIKI_DATASET_TRAIN_RAW_PATH, "rb"))
 
-    data_parser = WikiTextParser(data)
-    data_parser.to_lowercase()
+    # data_parser = WikiTextParser(data)
+    # data_parser.to_lowercase()
+    # data_parser.save_parsed_data("dataset//wikitext_train_prased.pickle")
+    
+    data_parser = WikiTextParser.from_parsed_data("dataset//wikitext_train_prased.pickle")
+
+    print(data_parser.data.iloc[144054]['text'])
     # data_parser.numbers_to_tokens()
     # data_parser.urls_to_tokens()
     
     # print_html_examples(data_parser.data)
-    # find_pattern_examples("extracted_patterns//number_samples.txt", data_parser.data, WikiTextParser.number_regex, 300)
-    find_pattern_examples("extracted_patterns//html_samples.txt", data_parser.data, WikiTextParser.html_tag_regex, 300, rand=True, window_size=50)
-    find_pattern_examples("extracted_patterns//url_samples.txt", data_parser.data, WikiTextParser.url_regex, 300, rand=True, window_size=80)
+    # find_pattern_examples("extracted_patterns//number_samples.txt", data_parser.data, WikiTextParser.number_regex, 300, rand=True, window_size=30)
+    # find_pattern_examples("extracted_patterns//html_samples.txt", data_parser.data, WikiTextParser.html_tag_regex, 300, rand=True, window_size=50)
+    # find_pattern_examples("extracted_patterns//url_samples.txt", data_parser.data, WikiTextParser.url_regex, 300, rand=True, window_size=80)
 
     # text_analysis(data_parser.data)
     
