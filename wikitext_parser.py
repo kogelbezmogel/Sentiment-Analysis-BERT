@@ -7,6 +7,8 @@ import emoji
 import random
 import math
 
+from abrevation_dict import AbrevationList
+
 WIKI_DATASET_TRAIN_RAW_PATH = "dataset//wikitext_train_raw.pickle"
 WIKI_DATASET_TEST_RAW_PATH = "dataset//wikitext_test_raw.pickle"
 
@@ -44,14 +46,12 @@ class WikiTextParser:
             row['text'] = re.sub(self.url_regex, token, row['text'])
 
 
-    def extend_abrevations(self, abrevation_dict = None):
-        pass
+    def extend_abrevations(self):
+        abrevations = AbrevationList()
+        for abbr in abrevations.keys():
+                pattern = re.compile(r" " + re.escape(abbr) + r" ")
+                self.data['text'] = self.data['text'].apply(lambda text: re.sub( pattern, f" {abrevations[abbr]} ", text))
     
-
-    def remove_html_tags(self):
-        for index, row in self.data.iterrows():
-            row['text'] = re.sub(self.html_tag_regex, '', row['text'])
-
 
     def remove_empty_lines(self):
         pass
@@ -142,9 +142,9 @@ def text_analysis(corpus):
         if numbers_found:
             numbers_counter += 1
 
-    detected_numbers = [ num.replace(',', '.') for num in detected_numbers ]
-    detected_numbers = [ float(num) for num in detected_numbers ]
-    detected_numbers.sort()
+    # detected_numbers = [ num.replace(',', '.') for num in detected_numbers ]
+    # detected_numbers = [ float(num) for num in detected_numbers ]
+    # detected_numbers.sort()
 
     print(f"set of numbers             : {len(detected_numbers)}")
     print(f"set of emojis              : {len(detected_emojis)}")
@@ -209,15 +209,15 @@ if __name__ == '__main__':
     # data_parser.save_parsed_data("dataset//wikitext_train_prased.pickle")
     
     data_parser = WikiTextParser.from_parsed_data("dataset//wikitext_train_prased.pickle")
-
-    print(data_parser.data.iloc[214829]['text'])
-    # data_parser.numbers_to_tokens()
-    # data_parser.urls_to_tokens()
+    # print( data_parser.data.iloc[10]["text"])
     
     # print_html_examples(data_parser.data)
-    find_pattern_examples("extracted_patterns//number_samples.txt", data_parser.data, WikiTextParser.number_regex, 300, rand=True, window_size=30)
+    # find_pattern_examples("extracted_patterns//number_samples.txt", data_parser.data, WikiTextParser.number_regex, 300, rand=True, window_size=30)
     # find_pattern_examples("extracted_patterns//html_samples.txt", data_parser.data, WikiTextParser.html_tag_regex, 300, rand=True, window_size=50)
-    # find_pattern_examples("extracted_patterns//url_samples.txt", data_parser.data, WikiTextParser.url_regex, 300, rand=True, window_size=80)
+    # find_pattern_examples("extracted_patterns//url_samples.txt", data_parser.data, WikiTextParser.url_regex, 300, rand=True, window_size=150)
+    # find_pattern_examples("extracted_patterns//abbreviations_samples.txt", data_parser.data, WikiTextParser.html_tag_regex, 300, rand=True, window_size=50)
+
+
 
     # text_analysis(data_parser.data)
     
