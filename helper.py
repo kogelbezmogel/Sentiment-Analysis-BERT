@@ -26,7 +26,7 @@ def text_analysis(corpus):
     numbers_counter = 0
     emptylines_counter = 0
 
-    for index, row in corpus.iterrows():
+    for _, row in corpus.iterrows():
         nonascii_found = False
         url_found = False
         html_found = False
@@ -39,11 +39,10 @@ def text_analysis(corpus):
 
             if not (0 <= ord(c) <= 127):
                 detected_nonascii.add(c)
-                nonascii_found = True
-
                 if emoji.is_emoji(c):
                     detected_emojis.add(c)
                     emojis_found = True
+                nonascii_found = True
 
         if row['text'] == "":
             emptylines_counter += 1
@@ -80,6 +79,38 @@ def text_analysis(corpus):
     print(f"urls in lines to all      : {url_counter / len(corpus) * 100:5.2f}%")
     print(f"numbers in lines to all   : {numbers_counter / len(corpus) * 100:5.2f}%")
     print(f"empty lines to all        : {emptylines_counter / len(corpus) * 100:5.2f}%")
+
+
+def findcount_nonascii(corpus: pd.DataFrame, save_path: AnyStr):
+    nonascii_dict = dict()
+
+    i = 1
+    for _, row in corpus.iterrows():
+        for c in row['text']:
+    
+            if not (0 <= ord(c) <= 127):
+                if c not in nonascii_dict.keys():
+                    nonascii_dict[c] = 1
+                else:
+                    nonascii_dict[c] += 1
+        # if i > 1000:
+        #     break
+        # i += 1
+
+    index = nonascii_dict.keys()
+    unicode = [ val.encode('ascii', 'backslashreplace') for val in index ]
+    values = [nonascii_dict[key] for key in index]
+    results = pd.DataFrame(values, columns=['count'], index=index)
+    results['unicode'] = unicode
+
+    results.sort_values('count', inplace=True, ascending=False)    
+    print(results.head(30))
+    
+    # saving to file
+    file = open(save_path, 'w')
+    for ind, row in results.iterrows():
+        file.write(f"{row['count']:10d} | {ind:3s} | {row['unicode']}\n")
+    file.close()
 
 
 def find_pattern_examples(file_name: AnyStr, data: pd.DataFrame, patterns: List, num: int = None, rand = True, window_size = 20):
@@ -121,3 +152,5 @@ def find_pattern_examples(file_name: AnyStr, data: pd.DataFrame, patterns: List,
             if samples_to_print == 0:
                 break
     file.close()
+
+

@@ -27,7 +27,6 @@ class SentimentData:
             # temple ( cave ) .
             #  [ has ] a
             # that " this cave [ has ] a beautiful gate "
-            # ??????????????????????????????
             data.loc[ind, 'text'] = text
 
 
@@ -94,4 +93,6 @@ class SentimentDatasetsParser:
 if __name__ == "__main__":
     # data = AmazonSentiment()
     data = DrugsSentiment()
-    helper.text_analysis(data.data)
+    print()
+    print( data.data.iloc[0]['text'] )
+    # helper.text_analysis(data.data)

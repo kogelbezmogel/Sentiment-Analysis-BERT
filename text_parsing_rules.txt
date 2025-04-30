@@ -1,0 +1,54 @@
+This is a documenation about how text should is parsed in order to fit BERT model.
+
+#0 TEXT_STRUCTURE
+
+    - Spearation by whitespace
+        1. Each text chunk must start and end with additional whitespace
+        2. Each word must be separeted by whitespace
+        3. @-@ means that left and right word were connected by - in original text. In processing they should be reconnected and @ symbol should be removed
+
+
+#1 NUMBERS
+    All numbers must be replaced with special token [NUM]
+
+#2 ABREVATIONS
+    All abrevations should be extended with help of abrevation list which is included in this project
+
+#3 URLS
+    All urls should be replaced with special token [URL]
+
+#4 UNICODE
+    1. Emojis
+    
+    2. Emoticons
+
+    3. Replacable for ASCII
+        \u2013 -> -
+        \u2014 -> remove
+        \u2019 -> ' 
+        \u2212 -> -         (mostly it is used as a minus in text)
+        \u201d -> "         (used mostly for quoting)
+        \u201c -> "         (used mostly for quoting)
+        \xd7   ->           (used in math formulas and surface measurment as a multiplayer symbol)
+        \xb0   -> remove
+        \u2044 -> /         (mostly used as a division symbol)
+        \u02d0 -> remove??  (used in pronunciation)
+        \u02c8 -> remove??  (used in pronunciation)
+        \u2026 -> ...       (used to suggest omitting phrases)
+        \u2032 -> '         (partly used in words like "book's" and partly as a minutes in geographical coordinates)
+        \u30fc -> ????????  (used in words from another language)
+        \u2018 -> remove??  (used sometimes as some quotation marks)
+        \u02bb -> ????????  (used in words from another language)
+        \xb7   ->           (used in math and chem formulas as a multiplayer symbol)
+        \u0131 ->           (used in words from another language)
+        \u2033 ->           (used as a seconds in geographical coordinates)
+        \u0627 ->           (used in words from another language)
+        \xbd   ->           (1/2 sometimes alone sometimes with other numbers)
+        \xb2   -> remove    (as a power 2 of some number or unit)
+        \xb1   -> remove    (usually paired with some numbers)
+        \u2192 -> "->"      (usually in chemical fourmulas)
+        \u2011 -> remove    (as a joint for number and unit. 4 - hour shift)
+        All other unicodes just remove or replace with token [WRD]
+
+    4. Words from antoher languages
+        All words that uses unicode characters from antoher languages should be replaced by [WRD]
