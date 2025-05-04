@@ -5,6 +5,7 @@ import emoji
 import random
 import re
 import math
+import unicodedata
 
 
 class RegexPatterns:
@@ -84,7 +85,6 @@ def text_analysis(corpus):
 def findcount_nonascii(corpus: pd.DataFrame, save_path: AnyStr):
     nonascii_dict = dict()
 
-    i = 1
     for _, row in corpus.iterrows():
         for c in row['text']:
     
@@ -93,9 +93,6 @@ def findcount_nonascii(corpus: pd.DataFrame, save_path: AnyStr):
                     nonascii_dict[c] = 1
                 else:
                     nonascii_dict[c] += 1
-        # if i > 1000:
-        #     break
-        # i += 1
 
     index = nonascii_dict.keys()
     unicode = [ val.encode('ascii', 'backslashreplace') for val in index ]
@@ -153,4 +150,24 @@ def find_pattern_examples(file_name: AnyStr, data: pd.DataFrame, patterns: List,
                 break
     file.close()
 
+
+def check_if_nonascii_word(word: AnyStr) -> bool:
+    for char in word:
+        ucode_category = unicodedata.category(char)
+        order = ord(char)
+        if order > 127 and ucode_category.startswith('L'):
+            return True
+    return False
+
+
+def filter_same_token_repetition(words: List, token: AnyStr) -> List:
+    tokens_to_remove = []
+    for i, word in enumerate(words[:-1]):
+        if word == token and words[i+1] == token:
+            tokens_to_remove.append(i+1)
+
+    tokens_to_remove.sort(reverse=True)
+    for id in tokens_to_remove:
+        words.pop(id)
+    return words
 

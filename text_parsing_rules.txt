@@ -1,12 +1,10 @@
 This is a documenation about how text should is parsed in order to fit BERT model.
 
 #0 TEXT_STRUCTURE
-
     - Spearation by whitespace
         1. Each text chunk must start and end with additional whitespace
         2. Each word must be separeted by whitespace
         3. @-@ means that left and right word were connected by - in original text. In processing they should be reconnected and @ symbol should be removed
-
 
 #1 NUMBERS
     All numbers must be replaced with special token [NUM]
@@ -35,9 +33,9 @@ This is a documenation about how text should is parsed in order to fit BERT mode
         \u02d0 -> remove??  (used in pronunciation)
         \u02c8 -> remove??  (used in pronunciation)
         \u2026 -> ...       (used to suggest omitting phrases)
-        \u2032 -> '         (partly used in words like "book's" and partly as a minutes in geographical coordinates)
+        \u2032 -> '         (partly used in words like "Jon's book" and partly as a minutes in geographical coordinates)
         \u30fc -> ????????  (used in words from another language)
-        \u2018 -> remove??  (used sometimes as some quotation marks)
+        \u2018 -> remove??  (used sometimes as some light quotation marks)
         \u02bb -> ????????  (used in words from another language)
         \xb7   ->           (used in math and chem formulas as a multiplayer symbol)
         \u0131 ->           (used in words from another language)
@@ -52,3 +50,9 @@ This is a documenation about how text should is parsed in order to fit BERT mode
 
     4. Words from antoher languages
         All words that uses unicode characters from antoher languages should be replaced by [WRD]
+        To detect foreign word it can be checked if any character belongs outside ascii 0-127 and outside of unicode symbols u0200-u02bff 
+        (To check unicode groups https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane)
+
+
+    5. Mathematical symbols
+        In unicode symbols for punctuation and math are located in "Symbols Area"

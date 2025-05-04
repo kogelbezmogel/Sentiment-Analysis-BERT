@@ -11,11 +11,36 @@ import emoji
 import emot
 import random
 import math
+import unicodedata
 
 from abrevation_dict import AbrevationList
 
 WIKI_DATASET_TRAIN_RAW_PATH = "dataset//wikitext_train_raw.pickle"
 WIKI_DATASET_TEST_RAW_PATH = "dataset//wikitext_test_raw.pickle"
+
+REPLACEMENT_MAP = {
+    "\u2013" : "-",
+    "\u2014" : "",
+    "\u2019" : "'", 
+    "\u2212" : "-",
+    "\u201d" : "\"",
+    "\u201c" : "\"",
+    "\xd7"   : "*",
+    "\xb0"   : "",
+    "\u2044" : "/",
+    "\u02d0" : "",
+    "\u02c8" : "",
+    "\u2026" : "...",
+    "\u2032" : "'",
+    "\u2018" : "",
+    "\xb7"   : "",
+    "\u2033" : "",
+    "\xbd"   : "",
+    "\xb2"   : "",
+    "\xb1"   : "",
+    "\u2192" : "->",
+    "\u2011" : ""
+}
 
 
 class WikiTextParser:
@@ -103,6 +128,24 @@ class WikiTextParser:
                     text.pop(i)
 
             self.data.loc[ind, 'text'] =  " " + " ".join(text) + " "
+
+
+    def replace_foreign_words(self, token: AnyStr = "[WRD]"):
+        for ind, row in self.data.iterrows():
+            text = row["text"]
+            text = text.split()
+
+            for num, word in enumerate(text):
+                if helper.check_if_nonascii_word(word):
+                    text[num] = token
+            helper.filter_same_token_repetition(text, token)
+            
+            text = " " + " ".join(text) + " "
+            self.data.loc[ind, "text"] = text
+
+
+    def replace_choosen_unicodes(self, replacement_map=REPLACEMENT_MAP):
+        pass
 
 
     def save_parsed_data(self, path: AnyStr):
