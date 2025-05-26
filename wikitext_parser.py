@@ -20,26 +20,16 @@ WIKI_DATASET_TEST_RAW_PATH = "dataset//wikitext_test_raw.pickle"
 
 REPLACEMENT_MAP = {
     "\u2013" : "-",
-    "\u2014" : "",
     "\u2019" : "'", 
     "\u2212" : "-",
     "\u201d" : "\"",
     "\u201c" : "\"",
     "\xd7"   : "*",
-    "\xb0"   : "",
     "\u2044" : "/",
-    "\u02d0" : "",
-    "\u02c8" : "",
     "\u2026" : "...",
     "\u2032" : "'",
-    "\u2018" : "",
-    "\xb7"   : "",
-    "\u2033" : "",
-    "\xbd"   : "",
-    "\xb2"   : "",
-    "\xb1"   : "",
-    "\u2192" : "->",
-    "\u2011" : ""
+    "\xb7"   : "*",
+    "\u2192" : "->"
 }
 
 
@@ -108,6 +98,20 @@ class WikiTextParser:
         pass
 
 
+    def remove_all_non_ascii(self):
+        for ind, row in self.data.iterrows():
+            text: str = row['text']
+
+            # filtering character by character
+            text = [ char if ord(char) < 128 else ' ' for char in text ]
+            text = ''.join(text)
+
+            # removing double spaces
+            text = text.split()
+            text = " " + " ".join(text) + " "
+            self.data[ind, 'text'] = text
+
+
     def rejoin_stopwords(self, stopwords_set = None):
         # doesnt't work
         words = stopwords.words('english')
@@ -145,7 +149,13 @@ class WikiTextParser:
 
 
     def replace_choosen_unicodes(self, replacement_map=REPLACEMENT_MAP):
-        pass
+        for ind, row in self.data.iterrows():
+            text: str = row['text']
+            
+            for key in replacement_map.keys():
+                text = text.replace(key, replacement_map[key])
+            
+            self.data[ind, 'text'] = text
 
 
     def save_parsed_data(self, path: AnyStr):
@@ -192,6 +202,8 @@ if __name__ == '__main__':
     # data_parser.save_parsed_data("dataset//wikitext_train_prased.pickle")
     
     data_parser = WikiTextParser.from_parsed_data("dataset//core//wikitext_train_prased.pickle")
+    # for key in REPLACEMENT_MAP.keys():
+        # print(f"{key:3s} {key.encode('ascii', 'backslashreplace')} {unicodedata.category(key)}")
     # helper.findcount_nonascii(data_parser.data, "extracted_patterns//nonascii_sorted_by_frequency.txt")
 
     # print()
@@ -230,8 +242,8 @@ if __name__ == '__main__':
     # helper.find_pattern_examples("extracted_patterns//coma_samples.txt", data_parser.data, [re.compile(r"\xbd")], 50, rand=True, window_size=100)
     # helper.find_pattern_examples("extracted_patterns//coma_samples.txt", data_parser.data, [re.compile(r"\xb2")], 50, rand=True, window_size=100)
     # helper.find_pattern_examples("extracted_patterns//coma_samples.txt", data_parser.data, [re.compile(r"\xb1")], 50, rand=True, window_size=100)
-    # helper.find_pattern_examples("extracted_patterns//coma_samples.txt", data_parser.data, [re.compile(r"\u2192")], 50, rand=True, window_size=100)
-    helper.find_pattern_examples("extracted_patterns//coma_samples.txt", data_parser.data, [re.compile(r"\u2011")], 50, rand=True, window_size=100)
+    helper.find_pattern_examples("extracted_patterns//coma_samples.txt", data_parser.data, [re.compile(r"\u2192")], 50, rand=True, window_size=100)
+    # helper.find_pattern_examples("extracted_patterns//coma_samples.txt", data_parser.data, [re.compile(r"\u2011")], 50, rand=True, window_size=100)
 
     # timer_start = time.time()
     # counter = dict()
