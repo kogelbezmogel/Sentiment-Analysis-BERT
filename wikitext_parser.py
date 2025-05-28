@@ -1,5 +1,4 @@
 from typing import List, AnyStr
-import emot.core
 from nltk.corpus import stopwords
 
 import helper
@@ -9,9 +8,6 @@ import pickle
 import re
 import emoji
 import emot
-import random
-import math
-import unicodedata
 
 from abrevation_dict import AbrevationList
 
@@ -90,12 +86,21 @@ class WikiTextParser:
     def extend_abrevations(self):
         abrevations = AbrevationList()
         for abbr in abrevations.keys():
-                pattern = re.compile(r" " + re.escape(abbr) + r" ")
-                self.data['text'] = self.data['text'].apply(lambda text: re.sub(pattern, f" {abrevations[abbr]} ", text))
+            pattern = re.compile(r" " + re.escape(abbr) + r" ")
+            self.data['text'] = self.data['text'].apply(lambda text: re.sub(pattern, f" {abrevations[abbr]} ", text))
     
 
-    def remove_empty_lines(self):
-        pass
+    def remove_empty_lines(self, loud=False):
+        any_letters = re.compile(r'[a-zA-Z]')
+        
+        for ind, row in self.data.iterrows():
+            text: str = row['text']
+
+            if not re.search(any_letters, text):
+                self.data.drop(ind, inplace=True)
+                
+                if loud:
+                    print(f"{ind} row was empty: {text}")
 
 
     def remove_all_non_ascii(self):
@@ -110,28 +115,6 @@ class WikiTextParser:
             text = text.split()
             text = " " + " ".join(text) + " "
             self.data[ind, 'text'] = text
-
-
-    def rejoin_stopwords(self, stopwords_set = None):
-        # doesnt't work
-        words = stopwords.words('english')
-        
-        for ind, row in self.data.iterrows():
-            text = row['text']
-            text = text.split()
-
-            # rejoining all stop words with pattern (part ' part)
-            indexes = [i for i, _ in enumerate(text) if text == "'"]
-            indexes.reverse()
-
-            for i in indexes:
-                potential_stopword = text[i-1] + text[i] + text[i+1]
-                if potential_stopword in words:
-                    text[i-i] = potential_stopword
-                    text.pop(i+1)
-                    text.pop(i)
-
-            self.data.loc[ind, 'text'] =  " " + " ".join(text) + " "
 
 
     def replace_foreign_words(self, token: AnyStr = "[WRD]"):
@@ -191,6 +174,28 @@ class WikiTextParser:
     # for index, row in data.iterrows():
     #     for match in re.finditer(pattern, row['text']):
     #         print( row['text'][match.start()-10: match.start()] + "[" + row['text'][match.start() : match.end()] + "]" + row['text'][match.end(): match.end()+10] )
+
+
+    # def rejoin_stopwords(self, stopwords_set = None):
+    #     # doesnt't work
+    #     words = stopwords.words('english')
+        
+    #     for ind, row in self.data.iterrows():
+    #         text = row['text']
+    #         text = text.split()
+
+    #         # rejoining all stop words with pattern (part ' part)
+    #         indexes = [i for i, _ in enumerate(text) if text == "'"]
+    #         indexes.reverse()
+
+    #         for i in indexes:
+    #             potential_stopword = text[i-1] + text[i] + text[i+1]
+    #             if potential_stopword in words:
+    #                 text[i-i] = potential_stopword
+    #                 text.pop(i+1)
+    #                 text.pop(i)
+
+    #         self.data.loc[ind, 'text'] =  " " + " ".join(text) + " "
 
 
 if __name__ == '__main__':
