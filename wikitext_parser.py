@@ -1,18 +1,24 @@
 from typing import List, AnyStr
 from nltk.corpus import stopwords
 
-import helper
 import time
+import helper
 import pandas as pd
+import numpy as np
 import pickle 
 import re
 import emoji
 import emot
+# import swifter
+from multiprocessing import Pool
+from functools import partial
 
+from helper import RegexPatterns
 from abrevation_dict import AbrevationList
 
-WIKI_DATASET_TRAIN_RAW_PATH = "dataset//wikitext_train_raw.pickle"
-WIKI_DATASET_TEST_RAW_PATH = "dataset//wikitext_test_raw.pickle"
+WIKI_DATASET_TRAIN_RAW_PATH = "dataset//core//wikitext_train_raw.pickle"
+WIKI_DATASET_TEST_RAW_PATH = "dataset//core//wikitext_test_raw.pickle"
+WIKI_DATASET_TRAIN_PARSED_PATH = "dataset//core//wikitext_train_prased.pickle"
 
 REPLACEMENT_MAP = {
     "\u2013" : "-",
@@ -30,7 +36,6 @@ REPLACEMENT_MAP = {
 
 
 class WikiTextParser:
-
     def __init__(self, data: List[AnyStr] = []):
         if data:
             self.data = self.__parse_data_to_dataframe(data)
@@ -84,11 +89,18 @@ class WikiTextParser:
 
 
     def extend_abrevations(self):
-        abrevations = AbrevationList()
-        for abbr in abrevations.keys():
-            pattern = re.compile(r" " + re.escape(abbr) + r" ")
-            self.data['text'] = self.data['text'].apply(lambda text: re.sub(pattern, f" {abrevations[abbr]} ", text))
-    
+        abbr = AbrevationList()
+
+        n_cores = 5
+        df_split = np.array_split(self.data, n_cores)
+        pool = Pool(n_cores)
+
+        df_split = pool.map( partial(helper.replace_abrevation_in_chunk, abrevations=abbr), df_split )
+        
+        self.data = pd.concat( df_split )
+        pool.join()
+        pool.close()
+
 
     def remove_empty_lines(self, loud=False):
         any_letters = re.compile(r'[a-zA-Z]')
@@ -153,12 +165,12 @@ class WikiTextParser:
         text_lines = []
 
         for line in data:
-            if re.match(self.article_regex, line):
+            if re.match(RegexPatterns.article_regex, line):
                 article_id += 1
                 header_id = 0
                 line_id = 0
 
-            elif re.match(self.header_regex, line):
+            elif re.match(RegexPatterns.header_regex, line):
                 header_id += 1
                 line_id = 0
 
@@ -169,6 +181,10 @@ class WikiTextParser:
 
         index = pd.MultiIndex.from_tuples(index_tuples, names=(['article', 'part', 'line']))
         return pd.DataFrame(text_lines, columns=['text'], index=index)
+    
+
+    def __len__(self):
+        return len(self.data)
 
 
     # for index, row in data.iterrows():

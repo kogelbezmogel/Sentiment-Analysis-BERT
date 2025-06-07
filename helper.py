@@ -1,12 +1,14 @@
 from typing import AnyStr, List
 
+
+from functools import partial
 import pandas as pd
 import emoji
 import random
 import re
 import math
 import unicodedata
-
+import time
 
 class RegexPatterns:
     header_regex = re.compile(r" = .+ = .*")
@@ -171,3 +173,35 @@ def filter_same_token_repetition(words: List, token: AnyStr) -> List:
         words.pop(id)
     return words
 
+
+def replace_abrevation_in_text(row: pd.Series, abrevations, call_point:int, time_start, loud=False):
+    text = row['text']
+    current_point = row.name
+    words = text.split()
+
+    for abbr in abrevations.keys():
+        for i, word in enumerate(words):
+            if word == abbr:
+                words[i] = abrevations[abbr]
+        text = " " + " ".join(words) + " "
+
+    if current_point == call_point and loud:
+        time_end = time.time()
+        print(f"callpoint time: {time_end - time_start}s")
+    
+    row['text'] = text
+    return row
+
+
+def replace_abrevation_in_chunk(chunk: pd.DataFrame, abrevations) -> pd.DataFrame:
+    old_index = chunk.index
+    chunk.reset_index(drop=True, inplace=True)
+
+    first = chunk.iloc[0].name
+    last = chunk.iloc[-1].name
+    call_point = math.ceil((last - first) * 0.01)
+    time_start = time.time()
+    
+    chunk.apply(partial(replace_abrevation_in_text, abrevations=abrevations, call_point=call_point, time_start=time_start), axis=1)
+    chunk.index = old_index
+    return chunk

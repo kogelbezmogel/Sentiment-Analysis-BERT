@@ -17,7 +17,7 @@ class AbrevationList:
 
         self.data.drop('no', axis=1, inplace=True)
         self.data.set_index('abbr', inplace=True)
-        print(self.data)
+        # print(self.data)
 
     def keys(self):
         return set(self.data.index.to_list())
