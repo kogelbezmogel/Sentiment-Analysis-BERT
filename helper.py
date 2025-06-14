@@ -225,7 +225,27 @@ def __chunk_apply(chunk: pd.DataFrame, func, axis, loud=False, **kwargs):
     # restoring index        
     if loud:
         chunk.index = index_org
-    return chunk    
+    return chunk
+
+
+def __dataframe_split(data: pd.DataFrame, chunks_num: int = None, chunk_size: int = None) -> list[pd.DataFrame]:
+    if chunks_num is None and chunk_size is None:
+        raise Exception("Number of chunks or chunk size must be given")
+    elif chunks_num is not None and chunk_size is not None:
+        raise Exception("Both parameters cannot be given in the same time: chunks number and chunk size")
+    
+    data_size = len(data)
+    chunks = []
+    if chunks_num:
+        chunk_size = math.ceil(data_size / chunks_num)
+    elif chunk_size:
+        chunks_num = math.ceil(data_size / chunk_size)
+
+    for i in range(chunks_num):
+            slice_start = i * chunk_size
+            slice_end = min((i+1) * chunk_size, data_size)
+            chunks.append(data.iloc[slice_start : slice_end])
+    return chunks
 
 
 def parallel_apply(data: pd.DataFrame, func, axis, n_cores, loud=False, **kwargs) -> pd.DataFrame:
@@ -236,7 +256,7 @@ def parallel_apply(data: pd.DataFrame, func, axis, n_cores, loud=False, **kwargs
     w_start = time.time()
     
     pool = Pool(n_cores)
-    data_split = np.array_split(data, n_cores)
+    data_split = __dataframe_split(data, chunks_num=n_cores)
 
     data_split = pool.map(partial(__chunk_apply, func=func, axis=axis, loud=loud, **kwargs), data_split)
     pool.close()
@@ -268,7 +288,7 @@ if __name__ == "__main__":
     def rand_str():
         cp = [ random.choice(general_list) for _ in range( 200 * len(general_list) )]
         return "".join(cp)
-    data = [rand_str() for i in range(500_000)]
+    data = [rand_str() for i in range(200_000)]
     data = pd.DataFrame(data, columns=['text'])
     data.to_csv("test_data.csv", header=data.columns, index=False)
     data_cp = pd.read_csv("test_data.csv")
@@ -297,7 +317,7 @@ if __name__ == "__main__":
     print(abrevations)
 
     # usage
-    n_cores = 5
+    n_cores = 3
     dec_fun = partial(loud_decorator, inner_func=inner)
     data_cp = pd.read_csv("test_data.csv")
     df = parallel_apply(data_cp, dec_fun, axis=1, n_cores=n_cores, loud=True, abrevations=abrevations)
