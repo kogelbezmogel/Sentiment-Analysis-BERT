@@ -1,8 +1,10 @@
 from typing import AnyStr, List
-
-
+from multiprocessing import Pool
 from functools import partial
+
 import pandas as pd
+import numpy as np 
+
 import emoji
 import random
 import re
@@ -205,3 +207,102 @@ def replace_abrevation_in_chunk(chunk: pd.DataFrame, abrevations) -> pd.DataFram
     chunk.apply(partial(replace_abrevation_in_text, abrevations=abrevations, call_point=call_point, time_start=time_start), axis=1)
     chunk.index = old_index
     return chunk
+
+
+
+def __chunk_apply(chunk: pd.DataFrame, func, axis, loud=False, **kwargs):
+    if loud:
+        # resetting index
+        index_org = chunk.index
+        chunk.reset_index(inplace=True, drop=True)    
+        # attributes for measuring progress
+        kwargs['chunk_size'] = chunk.iloc[-1].name - chunk.iloc[0].name + 1
+        kwargs['call_point'] = math.ceil(0.02 * kwargs['chunk_size'])
+        kwargs['start_time'] = time.time()
+
+    chunk.apply(partial(func, **kwargs), axis=axis)
+
+    # restoring index        
+    if loud:
+        chunk.index = index_org
+    return chunk    
+
+
+def parallel_apply(data: pd.DataFrame, func, axis, n_cores, loud=False, **kwargs) -> pd.DataFrame:
+    # This function enables to process dataframe in parallel.
+    # func is user defined fuction wihich is given row as first argument and user defined other arguments passed in kwargs. func must return processed row
+    # func can be used with loud_decorator by func = partial(loud_decorator, inner_func=func) which prints time estimations for each core.
+
+    w_start = time.time()
+    
+    pool = Pool(n_cores)
+    data_split = np.array_split(data, n_cores)
+
+    data_split = pool.map(partial(__chunk_apply, func=func, axis=axis, loud=loud, **kwargs), data_split)
+    pool.close()
+    pool.join()
+    
+    data = pd.concat(data_split)
+    w_end = time.time()
+    print(f"cores: {n_cores}    whole_time: {w_end - w_start:4.0f}s")
+    return data
+
+
+def loud_decorator(row: pd.Series, inner_func, start_time: float, chunk_size: int, call_point: int, **kwargs):
+    # It is a decorator that prints aproximated time of job execution after few percent of processed rows
+    # inner_func must be second as the loud_dec will be used in apply where row is given as first positional argument
+    row = inner_func(row=row, **kwargs)
+
+    if row.name == call_point:
+        end_time = time.time()
+        print(f"expected processing time: {(end_time - start_time) * chunk_size / call_point:4.0f}s   chunk: {chunk_size} rows   callpoint {call_point} rows   time passed till callpoint {end_time - start_time:4.2f}s")
+    return row
+
+
+if __name__ == "__main__":
+
+    #### test for parralel chunk processing
+    
+    # # creating random text data with around 200 words per row 
+    general_list = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', ' ']
+    def rand_str():
+        cp = [ random.choice(general_list) for _ in range( 200 * len(general_list) )]
+        return "".join(cp)
+    data = [rand_str() for i in range(500_000)]
+    data = pd.DataFrame(data, columns=['text'])
+    data.to_csv("test_data.csv", header=data.columns, index=False)
+    data_cp = pd.read_csv("test_data.csv")
+    print(data_cp.info())
+
+    # creating processing function
+    def inner(row, abrevations):
+        text = row['text']
+        words = list(text)
+
+        for abbr in abrevations.keys():
+            found_id = []
+            for i, word in enumerate(words):
+                if word == abbr:
+                    found_id.append(i)        
+            for id in found_id:
+                words[id] = abrevations[abbr]
+
+        row['text'] = "".join(words)
+        return row
+
+    # creting argument for processing funciton
+    abrevations = {}
+    for num, el in enumerate(general_list[:-1]):
+        abrevations[el] = str(num)
+    print(abrevations)
+
+    # usage
+    n_cores = 5
+    dec_fun = partial(loud_decorator, inner_func=inner)
+    data_cp = pd.read_csv("test_data.csv")
+    df = parallel_apply(data_cp, dec_fun, axis=1, n_cores=n_cores, loud=True, abrevations=abrevations)
+    print(df)
+
+    data_cp = pd.read_csv("test_data.csv")    
+    df = parallel_apply(data_cp, inner, axis=1, n_cores=n_cores, loud=False, abrevations=abrevations)
+    print(df)
