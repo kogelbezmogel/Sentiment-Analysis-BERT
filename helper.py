@@ -176,9 +176,13 @@ def filter_same_token_repetition(words: List, token: AnyStr) -> List:
     return words
 
 
-def replace_abrevation_in_text(row: pd.Series, abrevations, call_point:int, time_start, loud=False):
+def to_lowercase_in_row(row: pd.Series) -> pd.Series:
+    row['text'] = row['text'].lower()
+    return row
+
+
+def replace_abrevations_in_row(row: pd.Series, abrevations):
     text = row['text']
-    current_point = row.name
     words = text.split()
 
     for abbr in abrevations.keys():
@@ -187,27 +191,8 @@ def replace_abrevation_in_text(row: pd.Series, abrevations, call_point:int, time
                 words[i] = abrevations[abbr]
         text = " " + " ".join(words) + " "
 
-    if current_point == call_point and loud:
-        time_end = time.time()
-        print(f"callpoint time: {time_end - time_start}s")
-    
     row['text'] = text
     return row
-
-
-def replace_abrevation_in_chunk(chunk: pd.DataFrame, abrevations) -> pd.DataFrame:
-    old_index = chunk.index
-    chunk.reset_index(drop=True, inplace=True)
-
-    first = chunk.iloc[0].name
-    last = chunk.iloc[-1].name
-    call_point = math.ceil((last - first) * 0.01)
-    time_start = time.time()
-    
-    chunk.apply(partial(replace_abrevation_in_text, abrevations=abrevations, call_point=call_point, time_start=time_start), axis=1)
-    chunk.index = old_index
-    return chunk
-
 
 
 def __chunk_apply(chunk: pd.DataFrame, func, axis, loud=False, **kwargs):
@@ -217,7 +202,7 @@ def __chunk_apply(chunk: pd.DataFrame, func, axis, loud=False, **kwargs):
         chunk.reset_index(inplace=True, drop=True)    
         # attributes for measuring progress
         kwargs['chunk_size'] = chunk.iloc[-1].name - chunk.iloc[0].name + 1
-        kwargs['call_point'] = math.ceil(0.02 * kwargs['chunk_size'])
+        kwargs['call_point'] = math.ceil(0.015 * kwargs['chunk_size'])
         kwargs['start_time'] = time.time()
 
     chunk.apply(partial(func, **kwargs), axis=axis)

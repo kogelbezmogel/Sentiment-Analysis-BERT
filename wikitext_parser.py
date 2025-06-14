@@ -48,9 +48,10 @@ class WikiTextParser:
         return parser
 
 
-    def to_lowercase(self):
-        for index, row in self.data.iterrows():
-            row['text'] = row['text'].lower()
+    def to_lowercase(self, n_cores: int = 1):
+        inner_f = helper.to_lowercase_in_row
+        inner_f_dec = partial(helper.loud_decorator, inner_func=inner_f)
+        self.data = helper.parallel_apply(self.data, inner_f_dec, axis=1, n_cores=n_cores, loud=True)
 
 
     def numbers_to_tokens(self, token = '[NUM]'):
@@ -88,18 +89,13 @@ class WikiTextParser:
             self.data.loc[ind, 'text'] = line
 
 
-    def extend_abrevations(self):
-        abbr = AbrevationList()
+    def extend_abrevations(self, n_cores: int = 1):
+        abbr_list = AbrevationList()
 
-        n_cores = 5
-        df_split = np.array_split(self.data, n_cores)
-        pool = Pool(n_cores)
+        inner_f = helper.replace_abrevations_in_row
+        inner_f_dec = partial(helper.loud_decorator, inner_func = inner_f)
 
-        df_split = pool.map( partial(helper.replace_abrevation_in_chunk, abrevations=abbr), df_split )
-        
-        self.data = pd.concat( df_split )
-        pool.join()
-        pool.close()
+        self.data = helper.parallel_apply(self.data, inner_f_dec, axis=1, n_cores=n_cores, loud=True, abrevations=abbr_list)
 
 
     def remove_empty_lines(self, loud=False):
